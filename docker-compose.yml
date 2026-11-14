@@ -33,7 +33,7 @@ services:
     environment:
       PORT: 5000
       MONGO_URI: mongodb://mongodb:27017/${MONGO_INITDB_DATABASE:-stockease}
-      JWT_SECRET: ${JWT_SECRET:-stockease_jwt_super_secret_dev_key_2026}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     depends_on:
