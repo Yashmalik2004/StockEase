@@ -396,6 +396,8 @@ kubectl rollout status deployment/backend -n stockease
 
 | Issue | Cause | Resolution |
 |---|---|---|
+| `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified` | Docker Desktop engine stopped or starting | Start Docker Desktop, wait for engine to initialize, and ensure context is set to `desktop-linux` (`docker context use desktop-linux`). |
+| `minikube is not recognized as a cmdlet` (Windows) | Minikube installed via winget but not in active process PATH | Add `C:\Program Files\Kubernetes\Minikube` to User/Machine PATH and restart PowerShell terminal or run: `$env:PATH += ";C:\Program Files\Kubernetes\Minikube"`. |
 | `ErrImageNeverPull` / `ImagePullBackOff` | Local image not loaded in Minikube | Run `minikube image load stockease-backend:latest` or build with `eval $(minikube docker-env)`. |
 | `CrashLoopBackOff` on backend | MongoDB not ready or JWT_SECRET missing | Check logs: `kubectl logs -l app=backend -n stockease`. Ensure `stockease-secret` exists. |
 | Backend cannot connect to MongoDB | DNS or service mismatch | Verify `kubectl get svc mongodb -n stockease` and check `MONGO_URI` in `ConfigMap`. |
