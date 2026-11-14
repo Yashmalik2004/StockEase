@@ -173,9 +173,9 @@ http://localhost:3000
 - Sign in to access the product catalog and inventory dashboard.
 
 #### 6. Access the Backend Health Endpoint
-Verify the backend is live and healthy:
+Verify the backend is live and healthy (Docker backend is mapped to host port **5001** to avoid conflict with local dev):
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:5001/api/health
 ```
 Expected response:
 ```json
