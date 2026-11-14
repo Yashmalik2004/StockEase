@@ -36,6 +36,31 @@ During initial Phase 5 execution, three environmental issues were diagnosed and 
 - **Diagnosis:** Located existing kubectl client at `C:\Program Files\Docker\Docker\resources\bin\kubectl.exe`.
 - **Resolution:** Confirmed client version `v1.34.1` with Kustomize `v5.7.1`. Reconfigured default context to point to local Minikube cluster upon cluster initialization.
 
+### Issue 4: Frontend Axios Hardcoded Localhost Fallback (Registration Failure)
+- **Observed Error:** User registration and API requests failed in browser when accessing StockEase through the Kubernetes NodePort or Minikube tunnel proxy.
+- **Root Cause:** In `frontend/src/api/axios.js`, `baseURL` was configured as:
+  ```javascript
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  ```
+  Since `VITE_API_URL` was unset/empty in the production Docker image, the fallback defaulted to `'http://localhost:5000'`. When a user opened the web application in a browser, client-side JavaScript sent HTTP requests directly to `http://localhost:5000/api/auth/register` (the user's local workstation) rather than routing through the Kubernetes frontend Nginx reverse proxy.
+- **Resolution:**
+  1. Updated `frontend/src/api/axios.js` to use relative path routing:
+     ```javascript
+     baseURL: import.meta.env.VITE_API_URL || '/api'
+     ```
+  2. Enhanced Axios request interceptor with path normalization to prevent duplicate `/api` prefix when endpoints specify `/api/...`:
+     ```javascript
+     if (config.baseURL?.endsWith('/api') && config.url?.startsWith('/api/')) {
+       config.url = config.url.slice(4)
+     }
+     ```
+  3. Rebuilt the frontend Docker image (`stockease-frontend:latest`) via `docker build -t stockease-frontend:latest ./frontend`.
+  4. Loaded the rebuilt image into Minikube containerd: `minikube image load stockease-frontend:latest`.
+  5. Restarted the frontend deployment: `kubectl rollout restart deployment/frontend -n stockease`.
+  6. Verified the new frontend pod (`frontend-784b6f7548-9jpjr`) reached `1/1 Running` and verified inside the container that `baseURL:"/api"` is served.
+  7. Tested live registration (`POST /api/auth/register` -> HTTP 201), login (`POST /api/auth/login` -> HTTP 200), and product creation (`POST /api/products` -> HTTP 201) through the frontend Service proxy.
+  8. Verified Nginx access logs confirmed all requests were proxied to `http://backend:5000`.
+
 ---
 
 ## 2. Kubernetes Cluster Initialization
@@ -255,6 +280,7 @@ Actual functional integration tests were performed against the live cluster:
 | **Environment Fix** | Docker Desktop WSL2 Engine & Context | `docker version`, `docker info` | ✅ **PASS** |
 | **Tooling & PATH** | Minikube v1.39.0 & kubectl v1.34.1 | CLI execution & PATH verification | ✅ **PASS** |
 | **Cluster Health** | Control Plane, CoreDNS & Node Status | `minikube status`, `kubectl get nodes` | ✅ **PASS** |
+| **Frontend Axios Fix** | Changed fallback from `localhost:5000` to `/api` | Code update, Docker rebuild & rollout | ✅ **PASS** |
 | **Image Loading** | Local images cached in Minikube containerd | `minikube image ls` | ✅ **PASS** |
 | **Manifest Validation** | Syntax, labels, selectors, port alignment | Automated semantic schema checks | ✅ **PASS** |
 | **Pod Workloads** | MongoDB, Backend, Frontend 1/1 Ready | `kubectl get pods -n stockease` | ✅ **PASS** |
@@ -270,7 +296,7 @@ Actual functional integration tests were performed against the live cluster:
 
 - **Feature Branch:** `kubernetes-orchestration`
 - **Base Branch:** `origin/main` (commit `66ff080`)
-- **Git Commit Hash:** `a13e8a6` (`docs(phase-5): document environment troubleshooting, live cluster deployment and verification`)
+- **Git Commit Hash:** `366229e` (`fix(frontend): update Axios base URL to /api to route through Nginx reverse proxy`)
 - **Remote Push:** Pushed to `origin/kubernetes-orchestration`
 - **Safety Guarantee:** Zero `.env` files, production credentials, or secrets committed; `main` branch untouched.
 
