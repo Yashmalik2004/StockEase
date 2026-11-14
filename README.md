@@ -51,56 +51,56 @@ StockEase addresses these problems by providing a centralized, digital, and auto
 
 ---
 
-## ✅ Implemented Application Features (Phase 2)
+## 🚀 Implemented Application Features (Phase 2)
 
 | # | Feature | Status |
-|---|---------|--------|
-| 1 | **Admin Registration** | ✅ Implemented |
-| 2 | **Admin Login** | ✅ Implemented |
-| 3 | **JWT Authentication** | ✅ Implemented |
-| 4 | **Add Products** | ✅ Implemented |
-| 5 | **View Products** | ✅ Implemented |
-| 6 | **Update Product Information** | ✅ Implemented |
-| 7 | **Delete Products** | ✅ Implemented |
-| 8 | **Manage Stock Quantities** | ✅ Implemented |
-| 9 | **Search Products** | ✅ Implemented |
-| 10 | **Filter by Category** | ✅ Implemented |
-| 11 | **Low-Stock Alerts** | ✅ Implemented |
-| 12 | **Dashboard Statistics** | ✅ Implemented |
-| 13 | **Responsive Admin UI** | ✅ Implemented |
+|---|---------|:------:|
+| 1 | **Admin Registration** | ✅ Complete |
+| 2 | **Admin Login** | ✅ Complete |
+| 3 | **JWT Authentication** | ✅ Complete |
+| 4 | **Add Products** | ✅ Complete |
+| 5 | **View Products** | ✅ Complete |
+| 6 | **Update Product Information** | ✅ Complete |
+| 7 | **Delete Products** | ✅ Complete |
+| 8 | **Manage Stock Quantities** | ✅ Complete |
+| 9 | **Search Products** | ✅ Complete |
+| 10 | **Filter by Category** | ✅ Complete |
+| 11 | **Low-Stock Alerts** | ✅ Complete |
+| 12 | **Dashboard Statistics** | ✅ Complete |
+| 13 | **Responsive Admin UI** | ✅ Complete |
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Application Layer
+### Application Layer (Implemented)
 
-| Layer | Technology | Status |
-|-------|-----------|--------|
-| **Frontend** | React.js 18 + Vite 5 + Tailwind CSS 3 | ✅ Implemented |
-| **Backend** | Node.js + Express.js 4 | ✅ Implemented |
-| **Database** | MongoDB + Mongoose 8 | ✅ Implemented |
+| Layer | Technology | Status | Purpose |
+|-------|-----------|:------:|---------|
+| **Frontend** | React.js 18 + Vite 5 + Tailwind CSS 3 | ✅ Complete | Modern, responsive admin single-page application |
+| **Backend** | Node.js + Express.js 4 | ✅ Complete | RESTful API server with centralized routing |
+| **Database** | MongoDB + Mongoose 8 | ✅ Complete | NoSQL document storage with schema validation |
 
-### DevOps Layer
+### DevOps Layer (Roadmap)
 
-| Tool | Technology | Status |
-|------|-----------|--------|
-| **Version Control** | Git + GitHub | ✅ Phase 1 |
-| **CI/CD** | GitHub Actions | ⏳ Phase 4 |
-| **Containerization** | Docker | ⏳ Phase 3 |
-| **Orchestration** | Kubernetes | ⏳ Phase 5 |
-| **Automation** | Ansible | ⏳ Phase 6 |
-| **Monitoring** | Prometheus | ⏳ Phase 7 |
-| **Security Scanning** | Trivy | ⏳ Phase 7 |
+| Tool | Technology | Status | Purpose |
+|------|-----------|:------:|---------|
+| **Version Control** | Git + GitHub | ✅ Complete (Phase 1) | Source code management and collaboration |
+| **Containerization** | Docker | ⏳ Planned (Phase 3) | Multi-stage image build and container packaging |
+| **CI/CD** | GitHub Actions | ⏳ Planned (Phase 4) | Automated build, test, and container scanning |
+| **Orchestration** | Kubernetes | ⏳ Planned (Phase 5) | Cluster deployment, scaling, and self-healing |
+| **Automation** | Ansible | ⏳ Planned (Phase 6) | Automated server configuration management |
+| **Monitoring** | Prometheus | ⏳ Planned (Phase 7) | Real-time metric collection and monitoring |
+| **Security Scanning** | Trivy | ⏳ Planned (Phase 7) | Container image vulnerability analysis |
 
 ---
 
-## 🚀 Getting Started
+## 🏁 Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- MongoDB running locally (or MongoDB Atlas URI)
+- MongoDB running locally on port 27017 (or MongoDB Atlas URI)
 - Git
 
 ### 1. Clone the Repository
@@ -110,35 +110,34 @@ git clone https://github.com/Yashmalik2004/StockEase.git
 cd StockEase
 ```
 
-### 2. Configure and Start the Backend
+### 2. Configure and Start Backend
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env — set MONGO_URI and JWT_SECRET
+# Edit .env with your configuration
 npm install
 npm run dev
 ```
 
-Backend runs on **http://localhost:5000**
+Backend API server starts on **http://localhost:5000**
 
-### 3. Configure and Start the Frontend
+### 3. Configure and Start Frontend
 
 ```bash
 cd frontend
 cp .env.example .env
-# VITE_API_URL is already set to http://localhost:5000
 npm install
 npm run dev
 ```
 
-Frontend runs on **http://localhost:5173**
+Frontend UI starts on **http://localhost:5173**
 
-### 4. (Optional) Seed Sample Data
+### 4. (Optional) Populate Sample Inventory
 
 ```bash
-# From repo root
-node database/seed.js
+cd backend
+npm run seed
 ```
 
 ---
@@ -179,7 +178,7 @@ StockEase/
 ## 🗺️ Development Roadmap
 
 | Phase | Title | Status |
-|-------|-------|--------|
+|-------|-------|:------:|
 | **Phase 1** | Project Initialization and GitHub Setup | ✅ Complete |
 | **Phase 2** | Frontend, Backend and MongoDB Development | ✅ Complete |
 | **Phase 3** | Docker and Docker Compose | ⏳ Planned |
