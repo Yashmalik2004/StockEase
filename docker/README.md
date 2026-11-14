@@ -1,25 +1,65 @@
-# Docker
+# Docker Containerization – StockEase
 
-This directory will contain all **Docker** and **Docker Compose** configuration files for containerizing the StockEase application.
+This directory documents the **Docker** and **Docker Compose** containerization architecture for StockEase.
 
-## Planned Contents
+## Architecture Overview
 
-- `Dockerfile` for the frontend (React + Vite)
-- `Dockerfile` for the backend (Node.js + Express)
-- `docker-compose.yml` for local multi-container orchestration
-- `.dockerignore` files
+StockEase uses a multi-container architecture orchestrated with Docker Compose:
 
-## Planned Services (Docker Compose)
+```
+                      ┌───────────────────────────────────────┐
+                      │             Client Browser            │
+                      └──────────────────┬────────────────────┘
+                                         │
+                         HTTP Port 3000  │  (Frontend UI & /api proxy)
+                                         ▼
+                      ┌───────────────────────────────────────┐
+                      │          stockease-frontend           │
+                      │             (Nginx Alpine)            │
+                      └──────────────────┬────────────────────┘
+                                         │
+                 Internal Docker Network │  http://backend:5000/api
+                                         ▼
+                      ┌───────────────────────────────────────┐
+                      │           stockease-backend           │
+                      │         (Node.js 20 Express)          │
+                      └──────────────────┬────────────────────┘
+                                         │
+                 Internal Docker Network │  mongodb://mongodb:27017
+                                         ▼
+                      ┌───────────────────────────────────────┐
+                      │           stockease-mongodb           │
+                      │              (Mongo 7.0)              │
+                      └──────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                             Persistent Docker Volume
+                              (stockease-mongodb-data)
+```
 
-| Service | Image | Port |
-|---------|-------|------|
-| `frontend` | Custom React build | 3000 |
-| `backend` | Custom Node.js build | 5000 |
-| `mongodb` | `mongo:latest` | 27017 |
+## Services Summary
 
-## Status
+| Service | Container Name | Base Image | Internal Port | Host Port | Purpose |
+|---------|----------------|------------|---------------|-----------|---------|
+| `frontend` | `stockease-frontend` | `nginx:alpine` | 80 | 3000 | Production React build served with Nginx reverse proxy |
+| `backend` | `stockease-backend` | `node:20-alpine` | 5000 | 5000 | Express API connected to MongoDB container |
+| `mongodb` | `stockease-mongodb` | `mongo:7.0` | 27017 | — | Dedicated database with persistent storage |
 
-> ⏳ **Not yet implemented.** This directory is reserved for Phase 3 development.
+## Quick Start
 
-Docker configuration will begin in **Phase 3: Docker and Docker Compose**.
+```bash
+# Build and start all services in background
+docker compose up --build -d
 
+# View status of services
+docker compose ps
+
+# View live container logs
+docker compose logs -f
+
+# Stop services (preserves database volume)
+docker compose down
+
+# Stop services and remove persistent volume (complete reset)
+docker compose down -v
+```
