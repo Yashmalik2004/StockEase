@@ -1,0 +1,76 @@
+services:
+  # ============================================================================
+  # MongoDB Database Service
+  # ============================================================================
+  mongodb:
+    image: mongo:7.0
+    container_name: stockease-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-stockease}
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - stockease-network
+
+  # ============================================================================
+  # Backend API Service (Node.js + Express)
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stockease-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      PORT: 5000
+      MONGO_URI: mongodb://mongodb:27017/${MONGO_INITDB_DATABASE:-stockease}
+      JWT_SECRET: ${JWT_SECRET:-stockease_jwt_super_secret_dev_key_2026}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - stockease-network
+
+  # ============================================================================
+  # Frontend Client Service (React + Vite + Nginx)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    container_name: stockease-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - stockease-network
+
+# ==============================================================================
+# Persistent Storage Volumes
+# ==============================================================================
+volumes:
+  mongodb_data:
+    name: stockease-mongodb-data
+
+# ==============================================================================
+# Isolated Bridge Network
+# ==============================================================================
+networks:
+  stockease-network:
+    name: stockease-network
+    driver: bridge

@@ -51,23 +51,23 @@ StockEase addresses these problems by providing a centralized, digital, and auto
 
 ---
 
-## 🚀 Implemented Application Features (Phase 2)
+## 🚀 Implemented Application Features
 
-| # | Feature | Status |
-|---|---------|:------:|
-| 1 | **Admin Registration** | ✅ Complete |
-| 2 | **Admin Login** | ✅ Complete |
-| 3 | **JWT Authentication** | ✅ Complete |
-| 4 | **Add Products** | ✅ Complete |
-| 5 | **View Products** | ✅ Complete |
-| 6 | **Update Product Information** | ✅ Complete |
-| 7 | **Delete Products** | ✅ Complete |
-| 8 | **Manage Stock Quantities** | ✅ Complete |
-| 9 | **Search Products** | ✅ Complete |
-| 10 | **Filter by Category** | ✅ Complete |
-| 11 | **Low-Stock Alerts** | ✅ Complete |
-| 12 | **Dashboard Statistics** | ✅ Complete |
-| 13 | **Responsive Admin UI** | ✅ Complete |
+| # | Feature | Status | Description |
+|---|---------|:------:|-------------|
+| 1 | **Admin Registration** | ✅ Complete | Secure administrator account creation |
+| 2 | **Admin Login** | ✅ Complete | Email and password authentication |
+| 3 | **JWT Authentication** | ✅ Complete | Stateless token-based route protection |
+| 4 | **Add Products** | ✅ Complete | Form to register items with SKU and categories |
+| 5 | **View Products** | ✅ Complete | Paginated product catalogue table |
+| 6 | **Update Product Information** | ✅ Complete | Edit item metadata, price, and thresholds |
+| 7 | **Delete Products** | ✅ Complete | Removal with safety confirmation prompt |
+| 8 | **Manage Stock Quantities** | ✅ Complete | Dynamic stock increment and decrement |
+| 9 | **Search Products** | ✅ Complete | Instant name-based product filtering |
+| 10 | **Filter by Category** | ✅ Complete | Category dropdown selector |
+| 11 | **Low-Stock Alerts** | ✅ Complete | Visual threshold indicators (In Stock, Low Stock, Out of Stock) |
+| 12 | **Dashboard Statistics** | ✅ Complete | Key metric summary cards and recent activity list |
+| 13 | **Responsive Admin UI** | ✅ Complete | Collapsible sidebar layout built with Tailwind CSS |
 
 ---
 
@@ -86,7 +86,7 @@ StockEase addresses these problems by providing a centralized, digital, and auto
 | Tool | Technology | Status | Purpose |
 |------|-----------|:------:|---------|
 | **Version Control** | Git + GitHub | ✅ Complete (Phase 1) | Source code management and collaboration |
-| **Containerization** | Docker | ⏳ Planned (Phase 3) | Multi-stage image build and container packaging |
+| **Containerization** | Docker + Docker Compose | ✅ Complete (Phase 3) | Multi-stage image build, Nginx reverse proxy, and multi-container orchestration |
 | **CI/CD** | GitHub Actions | ⏳ Planned (Phase 4) | Automated build, test, and container scanning |
 | **Orchestration** | Kubernetes | ⏳ Planned (Phase 5) | Cluster deployment, scaling, and self-healing |
 | **Automation** | Ansible | ⏳ Planned (Phase 6) | Automated server configuration management |
@@ -95,46 +95,164 @@ StockEase addresses these problems by providing a centralized, digital, and auto
 
 ---
 
-## 🏁 Getting Started
+## 🐳 Running StockEase with Docker Compose
 
-### Prerequisites
+StockEase is fully containerized and runs as a multi-container architecture orchestrated through Docker Compose.
 
-- Node.js 18+
-- MongoDB running locally on port 27017 (or MongoDB Atlas URI)
-- Git
+### Architecture & Service Communication
 
-### 1. Clone the Repository
+```
+                      ┌───────────────────────────────────────┐
+                      │             Client Browser            │
+                      └──────────────────┬────────────────────┘
+                                         │
+                         HTTP Port 3000  │  (Frontend UI & /api reverse proxy)
+                                         ▼
+                      ┌───────────────────────────────────────┐
+                      │          stockease-frontend           │
+                      │             (Nginx Alpine)            │
+                      └──────────────────┬────────────────────┘
+                                         │
+                 Internal Docker Network │  http://backend:5000/api
+                                         ▼
+                      ┌───────────────────────────────────────┐
+                      │           stockease-backend           │
+                      │         (Node.js 20 Express)          │
+                      └──────────────────┬────────────────────┘
+                                         │
+                 Internal Docker Network │  mongodb://mongodb:27017
+                                         ▼
+                      ┌───────────────────────────────────────┐
+                      │           stockease-mongodb           │
+                      │              (Mongo 7.0)              │
+                      └──────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                             Persistent Docker Volume
+                              (stockease-mongodb-data)
+```
 
+- **Frontend (`stockease-frontend`)**: Multi-stage build (Node.js 20 builds React bundle, Nginx Alpine serves static files on port 80, mapped to host port `3000`). Nginx acts as a reverse proxy forwarding `/api` calls internally to the backend.
+- **Backend (`stockease-backend`)**: Node.js 20 LTS container running the Express API on port `5000`. Connects internally to the database using `mongodb://mongodb:27017/stockease`. Awaits database readiness via Docker Compose healthchecks.
+- **Database (`stockease-mongodb`)**: Official MongoDB 7.0 image with a built-in healthcheck (`mongosh --eval db.adminCommand('ping')`) and persistent data storage mounted to `stockease-mongodb-data`.
+
+---
+
+### Step-by-Step Instructions
+
+#### 1. Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+- [Git](https://git-scm.com/) installed.
+
+#### 2. Clone the Repository
 ```bash
 git clone https://github.com/Yashmalik2004/StockEase.git
 cd StockEase
 ```
 
-### 2. Configure and Start Backend
+#### 3. Configure Environment Variables
+Copy the root environment template:
+```bash
+cp .env.example .env
+```
+Adjust variables if necessary (the defaults work out of the box for Docker Compose).
 
+#### 4. Build and Start All Containers
+To build the images and launch all three services in detached (background) mode with a single command:
+```bash
+docker compose up --build -d
+```
+*(Or omit `-d` to see real-time combined logs in your terminal).*
+
+#### 5. Access the Frontend
+Open your browser and navigate to:
+```
+http://localhost:3000
+```
+- Click **Register** to create an initial administrator account.
+- Sign in to access the product catalog and inventory dashboard.
+
+#### 6. Access the Backend Health Endpoint
+Verify the backend is live and healthy:
+```bash
+curl http://localhost:5000/api/health
+```
+Expected response:
+```json
+{"status":"ok","message":"StockEase API is running."}
+```
+
+#### 7. Inspect Running Containers
+Check the status and health of all containers:
+```bash
+docker compose ps
+```
+You should see `stockease-frontend` (healthy/running), `stockease-backend` (running), and `stockease-mongodb` (healthy).
+
+#### 8. View Container Logs
+View live logs for all services:
+```bash
+docker compose logs -f
+```
+Or view logs for a specific service:
+```bash
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f mongodb
+```
+
+#### 9. Stop the Application
+Pause/stop all services without removing containers:
+```bash
+docker compose stop
+```
+To restart them later:
+```bash
+docker compose start
+```
+
+#### 10. Stop and Remove Containers (Preserving Database Data)
+To tear down the containers and network while **safely preserving** your MongoDB data in the persistent volume:
+```bash
+docker compose down
+```
+When you run `docker compose up -d` next time, all your registered products and admin accounts remain intact.
+
+#### 11. Complete Reset (Remove Containers and Database Volume)
+When you intentionally want to delete all stored database data and reset the entire environment from scratch:
+```bash
+docker compose down -v
+```
+
+---
+
+## 💻 Alternative: Running StockEase Locally (Non-Docker)
+
+If you prefer to run services manually on your host machine without Docker:
+
+### Prerequisites
+- Node.js 18+
+- Local MongoDB running on port 27017
+
+### 1. Configure and Start Backend
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your configuration
 npm install
 npm run dev
 ```
+Backend API starts on `http://localhost:5000`
 
-Backend API server starts on **http://localhost:5000**
-
-### 3. Configure and Start Frontend
-
+### 2. Configure and Start Frontend
 ```bash
 cd frontend
 cp .env.example .env
 npm install
 npm run dev
 ```
+Frontend UI starts on `http://localhost:5173`
 
-Frontend UI starts on **http://localhost:5173**
-
-### 4. (Optional) Populate Sample Inventory
-
+### 3. (Optional) Populate Sample Inventory
 ```bash
 cd backend
 npm run seed
@@ -148,27 +266,24 @@ npm run seed
 StockEase/
 │
 ├── frontend/           # React.js + Vite frontend application
-│   └── src/
-│       ├── api/        # Axios API client
-│       ├── components/ # Reusable UI components
-│       ├── context/    # React Context (Auth)
-│       └── pages/      # Login, Register, Dashboard, Products, Add/Edit
+│   ├── src/            # Source code (pages, components, API client)
+│   ├── Dockerfile      # Multi-stage production build (Node build -> Nginx serve)
+│   ├── nginx.conf      # Nginx web server config with /api reverse proxy
+│   └── .dockerignore   # Excludes node_modules, dist, logs from build context
 │
 ├── backend/            # Node.js + Express.js API server
-│   ├── config/         # MongoDB connection
-│   ├── controllers/    # Route handler logic
-│   ├── middleware/     # JWT auth middleware
+│   ├── config/         # Database connection configuration
+│   ├── controllers/    # API endpoint handlers
+│   ├── middleware/     # JWT authentication middleware
 │   ├── models/         # Mongoose models (Admin, Product)
-│   └── routes/         # Express routers
+│   ├── Dockerfile      # Production Node.js container build
+│   └── .dockerignore   # Excludes node_modules, .env from build context
 │
-├── database/           # MongoDB schema docs + seed script
-├── docker/             # Docker configuration (Phase 3)
-├── kubernetes/         # Kubernetes manifests (Phase 5)
-├── ansible/            # Ansible playbooks (Phase 6)
-├── monitoring/         # Prometheus configuration (Phase 7)
-├── .github/workflows/  # GitHub Actions CI/CD (Phase 4)
+├── database/           # MongoDB schema documentation + seed script
+├── docker/             # Docker architecture documentation
+├── docker-compose.yml  # Multi-container orchestration specification
 ├── docs/               # Phase completion reports
-├── .env.example        # Root environment variable template
+├── .env.example        # Root environment template for Docker Compose
 ├── .gitignore
 └── README.md
 ```
@@ -181,7 +296,7 @@ StockEase/
 |-------|-------|:------:|
 | **Phase 1** | Project Initialization and GitHub Setup | ✅ Complete |
 | **Phase 2** | Frontend, Backend and MongoDB Development | ✅ Complete |
-| **Phase 3** | Docker and Docker Compose | ⏳ Planned |
+| **Phase 3** | Docker and Docker Compose Containerization | ✅ Complete |
 | **Phase 4** | GitHub Actions CI/CD Pipeline | ⏳ Planned |
 | **Phase 5** | Kubernetes Deployment | ⏳ Planned |
 | **Phase 6** | Ansible Automation | ⏳ Planned |
