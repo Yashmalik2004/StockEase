@@ -1,0 +1,159 @@
+# ==============================================================================
+# StockEase – GitHub Actions CI Pipeline
+# Phase 4: Automated validation for backend, frontend, and Docker builds
+# ==============================================================================
+#
+# Jobs:
+#   backend-ci   – Install dependencies and validate backend syntax
+#   frontend-ci  – Install dependencies, lint, and production build
+#   docker-ci    – Validate Compose config and build Docker images
+#
+# Triggers:
+#   - Push to main
+#   - Push to github-actions-cicd
+#   - Pull requests targeting main
+# ==============================================================================
+
+name: StockEase CI
+
+on:
+  push:
+    branches:
+      - main
+      - github-actions-cicd
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# ==============================================================================
+# Backend CI Job
+# Validates Node.js dependencies and syntax without requiring a live database.
+# No test script exists in backend/package.json; syntax check is used instead.
+# ==============================================================================
+jobs:
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci --omit=dev
+
+      - name: Validate backend syntax (server.js)
+        run: node --check server.js
+
+      - name: Validate backend syntax (config/db.js)
+        run: node --check config/db.js
+
+      - name: Validate backend syntax (routes)
+        run: |
+          for f in routes/*.js; do
+            echo "Checking $f ..."
+            node --check "$f"
+          done
+
+      - name: Validate backend syntax (controllers)
+        run: |
+          for f in controllers/*.js; do
+            echo "Checking $f ..."
+            node --check "$f"
+          done
+
+      - name: Validate backend syntax (middleware)
+        run: |
+          for f in middleware/*.js; do
+            echo "Checking $f ..."
+            node --check "$f"
+          done
+
+      - name: Validate backend syntax (models)
+        run: |
+          for f in models/*.js; do
+            echo "Checking $f ..."
+            node --check "$f"
+          done
+
+  # ============================================================================
+  # Frontend CI Job
+  # Installs all dependencies (including devDependencies for Vite),
+  # runs ESLint, and performs a full production build.
+  # ============================================================================
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build frontend for production
+        run: npm run build
+        env:
+          VITE_API_URL: ""
+
+  # ============================================================================
+  # Docker CI Job
+  # Validates Docker Compose schema and builds both application images.
+  # Runs after backend-ci and frontend-ci to catch integration issues.
+  # Does NOT push images to any registry.
+  # JWT_SECRET is provided as a dummy CI value only for image build validation.
+  # ============================================================================
+  docker-ci:
+    name: Docker CI
+    runs-on: ubuntu-latest
+    needs:
+      - backend-ci
+      - frontend-ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config --quiet
+        env:
+          JWT_SECRET: ci-placeholder-secret-not-used-in-production
+
+      - name: Build backend Docker image
+        run: docker compose build backend
+        env:
+          JWT_SECRET: ci-placeholder-secret-not-used-in-production
+
+      - name: Build frontend Docker image
+        run: docker compose build frontend
+        env:
+          JWT_SECRET: ci-placeholder-secret-not-used-in-production
