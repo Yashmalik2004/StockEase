@@ -1,0 +1,24 @@
+# ==============================================================================
+# StockEase Ansible Requirements
+# Phase 6: Ansible Automation
+# ==============================================================================
+# This file lists the Ansible collections required by the StockEase playbooks.
+#
+# Install with:
+#   ansible-galaxy collection install -r requirements.yml
+#
+# Note: StockEase playbooks primarily use ansible.builtin modules (kubectl
+# command wrappers) which are included in every Ansible installation.
+# No additional collections are strictly required for the basic workflow.
+# ==============================================================================
+
+---
+collections:
+  # Core Ansible modules (built-in, always available — listed for completeness)
+  - name: ansible.builtin
+
+  # Kubernetes collection — optional; enables native k8s: module tasks
+  # Uncomment if you prefer native k8s module over kubectl command wrappers
+  # Requires: pip install kubernetes openshift
+  # - name: kubernetes.core
+  #   version: ">=3.0.0"

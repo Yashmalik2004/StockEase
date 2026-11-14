@@ -1,0 +1,60 @@
+# ==============================================================================
+# StockEase Ansible Group Variables
+# All variables shared across the ansible-automation playbooks
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Kubernetes Configuration
+# ------------------------------------------------------------------------------
+
+# Target namespace for all StockEase Kubernetes resources
+k8s_namespace: stockease
+
+# Path to Kubernetes manifests directory (relative to the ansible/ directory)
+manifests_dir: "{{ playbook_dir }}/../kubernetes"
+
+# kubectl binary (can be overridden if kubectl is not on PATH)
+kubectl_bin: kubectl
+
+# Whether the cluster is Minikube (affects image loading steps)
+use_minikube: true
+
+# Minikube profile name
+minikube_profile: minikube
+
+# ------------------------------------------------------------------------------
+# Wait Timeouts (seconds)
+# ------------------------------------------------------------------------------
+
+# How long to wait for MongoDB to become ready
+mongodb_ready_timeout: 120
+
+# How long to wait for backend to become ready
+backend_ready_timeout: 90
+
+# How long to wait for frontend to become ready
+frontend_ready_timeout: 60
+
+# ------------------------------------------------------------------------------
+# Docker Images
+# StockEase uses locally built images loaded into Minikube containerd.
+# These must be built with: docker build -t <name>:latest ./<dir>
+# and loaded with: minikube image load <name>:latest
+# ------------------------------------------------------------------------------
+
+backend_image: stockease-backend:latest
+frontend_image: stockease-frontend:latest
+
+# ------------------------------------------------------------------------------
+# Application Configuration (non-sensitive)
+# Sensitive values (JWT_SECRET) must be passed via environment variable
+# or vault — never hardcoded here.
+# See kubernetes/secret.yaml.example for the Secret template.
+# ------------------------------------------------------------------------------
+
+app_port: "5000"
+mongo_uri: "mongodb://mongodb:27017/stockease"
+mongo_db: stockease
+jwt_expires_in: 7d
+frontend_url: "http://localhost:30080"
+frontend_nodeport: 30080

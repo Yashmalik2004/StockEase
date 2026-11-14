@@ -1,0 +1,149 @@
+---
+# ==============================================================================
+# StockEase – Ansible Cluster Validation Playbook
+# Phase 6: Ansible Automation
+#
+# A lightweight playbook to verify that all StockEase Kubernetes resources
+# are healthy and the application is accessible. Run this after deploy.yml
+# or any time you want to check cluster health without re-deploying.
+#
+# Usage:
+#   ansible-playbook playbooks/validate.yml
+#   ansible-playbook playbooks/validate.yml -v
+# ==============================================================================
+
+- name: StockEase – Kubernetes Resource Validation
+  hosts: k8s_control
+  gather_facts: false
+
+  tasks:
+    # --------------------------------------------------------------------------
+    # Cluster Connectivity
+    # --------------------------------------------------------------------------
+    - name: "CHECK | Kubernetes cluster connectivity"
+      ansible.builtin.command: "{{ kubectl_bin }} cluster-info"
+      register: cluster_check
+      changed_when: false
+      failed_when: cluster_check.rc != 0
+      tags: [cluster]
+
+    - name: "CHECK | Cluster reachable – OK"
+      ansible.builtin.debug:
+        msg: "Cluster is reachable."
+      tags: [cluster]
+
+    # --------------------------------------------------------------------------
+    # Namespace
+    # --------------------------------------------------------------------------
+    - name: "CHECK | StockEase namespace exists"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get namespace {{ k8s_namespace }} -o jsonpath='{.status.phase}'
+      register: ns_phase
+      changed_when: false
+      failed_when: ns_phase.rc != 0 or ns_phase.stdout != "Active"
+      tags: [namespace]
+
+    - name: "CHECK | Namespace '{{ k8s_namespace }}' – Active"
+      ansible.builtin.debug:
+        msg: "Namespace '{{ k8s_namespace }}' is Active."
+      tags: [namespace]
+
+    # --------------------------------------------------------------------------
+    # MongoDB
+    # --------------------------------------------------------------------------
+    - name: "CHECK | MongoDB pod is Running and Ready"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} wait pod
+        -l app=mongodb
+        -n {{ k8s_namespace }}
+        --for=condition=Ready
+        --timeout=30s
+      register: mongodb_check
+      changed_when: false
+      failed_when: mongodb_check.rc != 0
+      tags: [mongodb]
+
+    - name: "CHECK | MongoDB – Ready"
+      ansible.builtin.debug:
+        msg: "MongoDB pod is Ready: {{ mongodb_check.stdout }}"
+      tags: [mongodb]
+
+    # --------------------------------------------------------------------------
+    # Backend
+    # --------------------------------------------------------------------------
+    - name: "CHECK | Backend pod is Running and Ready"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} wait pod
+        -l app=backend
+        -n {{ k8s_namespace }}
+        --for=condition=Ready
+        --timeout=30s
+      register: backend_check
+      changed_when: false
+      failed_when: backend_check.rc != 0
+      tags: [backend]
+
+    - name: "CHECK | Backend – Ready"
+      ansible.builtin.debug:
+        msg: "Backend pod is Ready: {{ backend_check.stdout }}"
+      tags: [backend]
+
+    # --------------------------------------------------------------------------
+    # Frontend
+    # --------------------------------------------------------------------------
+    - name: "CHECK | Frontend pod is Running and Ready"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} wait pod
+        -l app=frontend
+        -n {{ k8s_namespace }}
+        --for=condition=Ready
+        --timeout=30s
+      register: frontend_check
+      changed_when: false
+      failed_when: frontend_check.rc != 0
+      tags: [frontend]
+
+    - name: "CHECK | Frontend – Ready"
+      ansible.builtin.debug:
+        msg: "Frontend pod is Ready: {{ frontend_check.stdout }}"
+      tags: [frontend]
+
+    # --------------------------------------------------------------------------
+    # Backend Health Endpoint (via kubectl port-forward)
+    # --------------------------------------------------------------------------
+    - name: "CHECK | Backend /api/health via kubectl exec"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} exec
+        -n {{ k8s_namespace }}
+        deployment/backend
+        -- wget -qO- http://localhost:5000/api/health
+      register: health_check
+      changed_when: false
+      failed_when: health_check.rc != 0 or '"ok"' not in health_check.stdout
+      tags: [health, backend]
+
+    - name: "CHECK | Backend health response"
+      ansible.builtin.debug:
+        msg: "Backend health: {{ health_check.stdout }}"
+      tags: [health, backend]
+
+    # --------------------------------------------------------------------------
+    # Summary
+    # --------------------------------------------------------------------------
+    - name: "SUMMARY | All validation checks passed"
+      ansible.builtin.debug:
+        msg: |
+          ============================================================
+           StockEase Kubernetes Validation – ALL CHECKS PASSED
+          ============================================================
+           Cluster connectivity  : OK
+           Namespace stockease   : Active
+           MongoDB pod           : Ready
+           Backend pod           : Ready
+           Frontend pod          : Ready
+           Backend /api/health   : OK
+          ------------------------------------------------------------
+           Frontend URL:
+             minikube service frontend -n stockease --url
+          ============================================================
+      tags: [always]

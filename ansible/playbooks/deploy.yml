@@ -1,0 +1,352 @@
+---
+# ==============================================================================
+# StockEase – Ansible Kubernetes Deployment Playbook
+# Phase 6: Ansible Automation
+#
+# This playbook automates the full deployment of the StockEase application
+# onto a Kubernetes cluster (Minikube or any kubeconfig-accessible cluster).
+#
+# Prerequisites:
+#   - kubectl configured and pointing to the target cluster
+#   - Minikube running (if use_minikube=true)
+#   - Docker images built and loaded into Minikube:
+#       docker build -t stockease-backend:latest ./backend
+#       docker build -t stockease-frontend:latest ./frontend
+#       minikube image load stockease-backend:latest
+#       minikube image load stockease-frontend:latest
+#   - JWT_SECRET environment variable set (never hardcode in playbooks)
+#
+# Usage:
+#   ansible-playbook playbooks/deploy.yml
+#   ansible-playbook playbooks/deploy.yml --check   (dry-run)
+#   ansible-playbook playbooks/deploy.yml -v         (verbose)
+# ==============================================================================
+
+- name: StockEase – Kubernetes Deployment Automation
+  hosts: k8s_control
+  gather_facts: false
+
+  vars:
+    # JWT_SECRET read from variable (if passed via -e jwt_secret=...) or environment variable
+    jwt_secret: "{{ jwt_secret_var | default(lookup('env', 'JWT_SECRET'), true) }}"
+
+  pre_tasks:
+    # --------------------------------------------------------------------------
+    # Step 1: Tool Availability Verification
+    # --------------------------------------------------------------------------
+    - name: "PREFLIGHT | Verify kubectl is available"
+      ansible.builtin.command: "{{ kubectl_bin }} version --client"
+      register: kubectl_version_result
+      changed_when: false
+      failed_when: kubectl_version_result.rc != 0
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Display kubectl client version"
+      ansible.builtin.debug:
+        msg: "{{ kubectl_version_result.stdout_lines[0] | default(kubectl_version_result.stdout) }}"
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Verify Kubernetes cluster connectivity"
+      ansible.builtin.command: "{{ kubectl_bin }} cluster-info"
+      register: cluster_info_result
+      changed_when: false
+      failed_when: cluster_info_result.rc != 0
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Confirm cluster is reachable"
+      ansible.builtin.debug:
+        msg: "Kubernetes cluster reachable."
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Verify Kubernetes manifests directory exists"
+      ansible.builtin.stat:
+        path: "{{ manifests_dir }}"
+      register: manifests_stat
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Fail if manifests directory is missing"
+      ansible.builtin.fail:
+        msg: >
+          Kubernetes manifests directory not found at '{{ manifests_dir }}'.
+          Ensure this playbook is run from the ansible/ directory or adjust
+          manifests_dir in group_vars/all.yml.
+      when: not manifests_stat.stat.exists
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Verify required manifest files exist"
+      ansible.builtin.stat:
+        path: "{{ manifests_dir }}/{{ item }}"
+      register: manifest_files
+      loop:
+        - namespace.yaml
+        - configmap.yaml
+        - secret.yaml.example
+        - mongodb-pvc.yaml
+        - mongodb-deployment.yaml
+        - mongodb-service.yaml
+        - backend-deployment.yaml
+        - backend-service.yaml
+        - frontend-deployment.yaml
+        - frontend-service.yaml
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Fail if any required manifest is missing"
+      ansible.builtin.fail:
+        msg: "Required manifest file missing: {{ item.item }}"
+      when: not item.stat.exists
+      loop: "{{ manifest_files.results }}"
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Confirm all 10 manifest files are present"
+      ansible.builtin.debug:
+        msg: "All 10 Kubernetes manifest files verified."
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Validate JWT_SECRET is set in environment"
+      ansible.builtin.fail:
+        msg: >
+          JWT_SECRET environment variable is not set.
+          Set it before running: export JWT_SECRET=your_secure_secret_key
+          (minimum 32 characters for production).
+      when: jwt_secret | length == 0
+      tags: [preflight, always]
+
+  tasks:
+    # --------------------------------------------------------------------------
+    # Step 2: Namespace
+    # --------------------------------------------------------------------------
+    - name: "NAMESPACE | Apply stockease namespace"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/namespace.yaml
+      register: namespace_result
+      changed_when: "'created' in namespace_result.stdout or 'configured' in namespace_result.stdout"
+      tags: [namespace, deploy]
+
+    - name: "NAMESPACE | Confirm namespace status"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get namespace {{ k8s_namespace }} -o jsonpath='{.status.phase}'
+      register: namespace_status
+      changed_when: false
+      tags: [namespace, deploy]
+
+    - name: "NAMESPACE | Verify namespace is Active"
+      ansible.builtin.fail:
+        msg: "Namespace '{{ k8s_namespace }}' is not in Active state (got: {{ namespace_status.stdout }})"
+      when: namespace_status.stdout != "Active"
+      tags: [namespace, deploy]
+
+    # --------------------------------------------------------------------------
+    # Step 3: ConfigMap
+    # --------------------------------------------------------------------------
+    - name: "CONFIG | Apply ConfigMap (non-sensitive application configuration)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/configmap.yaml
+      register: configmap_result
+      changed_when: "'created' in configmap_result.stdout or 'configured' in configmap_result.stdout"
+      tags: [config, deploy]
+
+    # --------------------------------------------------------------------------
+    # Step 4: Secret (created/updated idempotently without committing credentials)
+    # --------------------------------------------------------------------------
+    - name: "SECRET | Apply stockease-secret from JWT_SECRET"
+      ansible.builtin.shell: >
+        {{ kubectl_bin }} create secret generic stockease-secret
+        --from-literal=JWT_SECRET={{ jwt_secret }}
+        -n {{ k8s_namespace }}
+        --dry-run=client -o yaml | {{ kubectl_bin }} apply -f -
+      register: secret_apply_result
+      changed_when: "'created' in secret_apply_result.stdout or 'configured' in secret_apply_result.stdout"
+      tags: [secret, deploy]
+
+    - name: "SECRET | Confirm secret exists"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get secret stockease-secret -n {{ k8s_namespace }} --no-headers
+      register: secret_confirm
+      changed_when: false
+      tags: [secret, deploy]
+
+    - name: "SECRET | Display secret confirmation"
+      ansible.builtin.debug:
+        msg: "Secret confirmed: {{ secret_confirm.stdout }}"
+      tags: [secret, deploy]
+
+    # --------------------------------------------------------------------------
+    # Step 5: MongoDB – PVC, Deployment, Service
+    # --------------------------------------------------------------------------
+    - name: "MONGODB | Apply PersistentVolumeClaim (mongodb-pvc)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/mongodb-pvc.yaml
+      register: pvc_result
+      changed_when: "'created' in pvc_result.stdout or 'configured' in pvc_result.stdout"
+      tags: [mongodb, storage, deploy]
+
+    - name: "MONGODB | Apply MongoDB Deployment"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/mongodb-deployment.yaml
+      register: mongodb_deploy_result
+      changed_when: "'created' in mongodb_deploy_result.stdout or 'configured' in mongodb_deploy_result.stdout"
+      tags: [mongodb, deploy]
+
+    - name: "MONGODB | Apply MongoDB Service (ClusterIP)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/mongodb-service.yaml
+      register: mongodb_svc_result
+      changed_when: "'created' in mongodb_svc_result.stdout or 'configured' in mongodb_svc_result.stdout"
+      tags: [mongodb, deploy]
+
+    - name: "MONGODB | Wait for MongoDB deployment to become ready"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} rollout status deployment/mongodb
+        -n {{ k8s_namespace }}
+        --timeout={{ mongodb_ready_timeout }}s
+      register: mongodb_rollout
+      changed_when: false
+      failed_when: mongodb_rollout.rc != 0
+      tags: [mongodb, deploy, wait]
+
+    - name: "MONGODB | Verify MongoDB pod readiness probe passes"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} wait pod
+        -l app=mongodb
+        -n {{ k8s_namespace }}
+        --for=condition=Ready
+        --timeout={{ mongodb_ready_timeout }}s
+      register: mongodb_pod_ready
+      changed_when: false
+      tags: [mongodb, deploy, wait]
+
+    - name: "MONGODB | Confirm MongoDB is ready"
+      ansible.builtin.debug:
+        msg: "MongoDB is ready: {{ mongodb_pod_ready.stdout }}"
+      tags: [mongodb, deploy]
+
+    # --------------------------------------------------------------------------
+    # Step 6: Backend – Deployment and Service
+    # --------------------------------------------------------------------------
+    - name: "BACKEND | Apply Backend Deployment"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/backend-deployment.yaml
+      register: backend_deploy_result
+      changed_when: "'created' in backend_deploy_result.stdout or 'configured' in backend_deploy_result.stdout"
+      tags: [backend, deploy]
+
+    - name: "BACKEND | Apply Backend Service (ClusterIP)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/backend-service.yaml
+      register: backend_svc_result
+      changed_when: "'created' in backend_svc_result.stdout or 'configured' in backend_svc_result.stdout"
+      tags: [backend, deploy]
+
+    - name: "BACKEND | Wait for Backend deployment rollout"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} rollout status deployment/backend
+        -n {{ k8s_namespace }}
+        --timeout={{ backend_ready_timeout }}s
+      register: backend_rollout
+      changed_when: false
+      failed_when: backend_rollout.rc != 0
+      tags: [backend, deploy, wait]
+
+    - name: "BACKEND | Verify Backend pod is ready (health probe passing)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} wait pod
+        -l app=backend
+        -n {{ k8s_namespace }}
+        --for=condition=Ready
+        --timeout={{ backend_ready_timeout }}s
+      register: backend_pod_ready
+      changed_when: false
+      tags: [backend, deploy, wait]
+
+    - name: "BACKEND | Confirm Backend is ready"
+      ansible.builtin.debug:
+        msg: "Backend is ready: {{ backend_pod_ready.stdout }}"
+      tags: [backend, deploy]
+
+    # --------------------------------------------------------------------------
+    # Step 7: Frontend – Deployment and Service
+    # --------------------------------------------------------------------------
+    - name: "FRONTEND | Apply Frontend Deployment"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/frontend-deployment.yaml
+      register: frontend_deploy_result
+      changed_when: "'created' in frontend_deploy_result.stdout or 'configured' in frontend_deploy_result.stdout"
+      tags: [frontend, deploy]
+
+    - name: "FRONTEND | Apply Frontend Service (NodePort 30080)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} apply -f {{ manifests_dir }}/frontend-service.yaml
+      register: frontend_svc_result
+      changed_when: "'created' in frontend_svc_result.stdout or 'configured' in frontend_svc_result.stdout"
+      tags: [frontend, deploy]
+
+    - name: "FRONTEND | Wait for Frontend deployment rollout"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} rollout status deployment/frontend
+        -n {{ k8s_namespace }}
+        --timeout={{ frontend_ready_timeout }}s
+      register: frontend_rollout
+      changed_when: false
+      failed_when: frontend_rollout.rc != 0
+      tags: [frontend, deploy, wait]
+
+    - name: "FRONTEND | Verify Frontend pod is ready"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} wait pod
+        -l app=frontend
+        -n {{ k8s_namespace }}
+        --for=condition=Ready
+        --timeout={{ frontend_ready_timeout }}s
+      register: frontend_pod_ready
+      changed_when: false
+      tags: [frontend, deploy, wait]
+
+    - name: "FRONTEND | Confirm Frontend is ready"
+      ansible.builtin.debug:
+        msg: "Frontend is ready: {{ frontend_pod_ready.stdout }}"
+      tags: [frontend, deploy]
+
+    # --------------------------------------------------------------------------
+    # Step 8: Final Status Verification
+    # --------------------------------------------------------------------------
+    - name: "VERIFY | Get all StockEase resources"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get all -n {{ k8s_namespace }} -o wide
+      register: final_status
+      changed_when: false
+      tags: [verify, deploy]
+
+    - name: "VERIFY | Display final resource status"
+      ansible.builtin.debug:
+        msg: "{{ final_status.stdout_lines }}"
+      tags: [verify, deploy]
+
+    - name: "VERIFY | Get PVC status"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get pvc -n {{ k8s_namespace }}
+      register: pvc_status
+      changed_when: false
+      tags: [verify, deploy]
+
+    - name: "VERIFY | Display PVC status"
+      ansible.builtin.debug:
+        msg: "{{ pvc_status.stdout_lines }}"
+      tags: [verify, deploy]
+
+  post_tasks:
+    - name: "SUMMARY | Deployment complete"
+      ansible.builtin.debug:
+        msg: |
+          ============================================================
+           StockEase Kubernetes Deployment – COMPLETE
+          ============================================================
+           Namespace  : {{ k8s_namespace }}
+           MongoDB    : Deployment 'mongodb' ready
+           Backend    : Deployment 'backend' ready (port 5000)
+           Frontend   : Deployment 'frontend' ready (NodePort 30080)
+          ------------------------------------------------------------
+           Access the application:
+             minikube service frontend -n {{ k8s_namespace }} --url
+             OR: http://$(minikube ip):{{ frontend_nodeport }}
+          ============================================================
+      tags: [always]

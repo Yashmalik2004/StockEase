@@ -87,9 +87,9 @@ StockEase addresses these problems by providing a centralized, digital, and auto
 |------|-----------|:------:|---------|
 | **Version Control** | Git + GitHub | ✅ Complete (Phase 1) | Source code management and collaboration |
 | **Containerization** | Docker + Docker Compose | ✅ Complete (Phase 3) | Multi-stage image build, Nginx reverse proxy, and multi-container orchestration |
-| **CI/CD** | GitHub Actions | ⏳ Planned (Phase 4) | Automated build, test, and container scanning |
-| **Orchestration** | Kubernetes | ⏳ Planned (Phase 5) | Cluster deployment, scaling, and self-healing |
-| **Automation** | Ansible | ⏳ Planned (Phase 6) | Automated server configuration management |
+| **CI/CD** | GitHub Actions | ✅ Complete (Phase 4) | Automated build, test, and container scanning |
+| **Orchestration** | Kubernetes | ✅ Complete (Phase 5) | Cluster deployment, scaling, and self-healing |
+| **Automation** | Ansible | ✅ Complete (Phase 6) | Automated Kubernetes deployment orchestration |
 | **Monitoring** | Prometheus | ⏳ Planned (Phase 7) | Real-time metric collection and monitoring |
 | **Security Scanning** | Trivy | ⏳ Planned (Phase 7) | Container image vulnerability analysis |
 
@@ -297,9 +297,9 @@ StockEase/
 | **Phase 1** | Project Initialization and GitHub Setup | ✅ Complete |
 | **Phase 2** | Frontend, Backend and MongoDB Development | ✅ Complete |
 | **Phase 3** | Docker and Docker Compose Containerization | ✅ Complete |
-| **Phase 4** | GitHub Actions CI/CD Pipeline | ⏳ Planned |
-| **Phase 5** | Kubernetes Deployment | ⏳ Planned |
-| **Phase 6** | Ansible Automation | ⏳ Planned |
+| **Phase 4** | GitHub Actions CI/CD Pipeline | ✅ Complete |
+| **Phase 5** | Kubernetes Deployment | ✅ Complete |
+| **Phase 6** | Ansible Automation | ✅ Complete |
 | **Phase 7** | Monitoring and Security | ⏳ Planned |
 | **Phase 8** | Testing, Documentation and Final Demonstration | ⏳ Planned |
 
