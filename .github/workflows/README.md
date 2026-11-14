@@ -21,3 +21,4 @@ Code Push → Lint & Test → Docker Build → Trivy Scan → Deploy to Kubernet
 > ⏳ **Not yet implemented.** This directory is reserved for Phase 4 development.
 
 GitHub Actions CI/CD will be configured in **Phase 4: GitHub Actions CI/CD Pipeline**.
+
