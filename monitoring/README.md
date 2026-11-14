@@ -22,3 +22,4 @@ This directory will contain **Prometheus** configuration and related monitoring 
 > ⏳ **Not yet implemented.** This directory is reserved for Phase 7 development.
 
 Monitoring setup will begin in **Phase 7: Monitoring and Security**.
+

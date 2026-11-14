@@ -17,7 +17,7 @@
 
 ## 📖 Project Description
 
-**StockEase** is a full-stack web-based Inventory Management System designed to help businesses efficiently track, manage, and control their product stock. The application provides an intuitive admin interface for managing product catalogues, monitoring stock levels, and receiving low-stock alerts — all through a modern, responsive web UI.
+**StockEase** is a full-stack web-based Inventory Management System designed to help businesses efficiently track, manage, and control their product stock. The application provides an intuitive admin interface for managing product catalogues, monitoring stock levels in real-time, and receiving automatic low-stock alerts — all through a modern, responsive web UI.
 
 Beyond the application itself, StockEase serves as a comprehensive DevOps Capstone Project, demonstrating the progressive application of industry-standard DevOps practices including containerization, orchestration, CI/CD automation, infrastructure management, and system monitoring.
 
@@ -51,78 +51,94 @@ StockEase addresses these problems by providing a centralized, digital, and auto
 
 ---
 
-## ✨ Planned Application Features
+## 🚀 Implemented Application Features (Phase 2)
 
-> **Note:** These are planned features. Implementation begins in Phase 2.
-
-| # | Feature | Description |
-|---|---------|-------------|
-| 1 | **Admin Login** | Secure authentication system for administrators |
-| 2 | **Add Products** | Create new product entries with details and metadata |
-| 3 | **View Products** | Browse the full product catalogue |
-| 4 | **Update Product Information** | Edit existing product names, descriptions, prices, and categories |
-| 5 | **Delete Products** | Remove discontinued products from the system |
-| 6 | **Manage Stock Quantities** | Increase or decrease stock levels as inventory changes |
-| 7 | **Search and Filter Products** | Search by name, category, or SKU; filter by stock status |
-| 8 | **Low-Stock Alerts** | Automatic visual alerts when stock falls below defined thresholds |
-
----
-
-## 🛠️ Planned Technology Stack
-
-> **Note:** These are the planned technologies. Full implementation is progressive across phases.
-
-### Application Layer
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | React.js + Vite | User interface and client-side rendering |
-| **Backend** | Node.js + Express.js | RESTful API server |
-| **Database** | MongoDB | NoSQL document storage |
-
-### DevOps Layer
-
-| Tool | Technology | Purpose |
-|------|-----------|---------|
-| **Version Control** | Git + GitHub | Source code management and collaboration |
-| **CI/CD** | GitHub Actions | Automated build, test, and deployment pipelines |
-| **Containerization** | Docker | Application packaging and environment consistency |
-| **Orchestration** | Kubernetes | Container scaling, self-healing, and service management |
-| **Automation** | Ansible | Server provisioning and configuration management |
-| **Monitoring** | Prometheus | Application and infrastructure metrics collection |
-| **Security Scanning** | Trivy | Container image vulnerability scanning |
+| # | Feature | Status |
+|---|---------|:------:|
+| 1 | **Admin Registration** | ✅ Complete |
+| 2 | **Admin Login** | ✅ Complete |
+| 3 | **JWT Authentication** | ✅ Complete |
+| 4 | **Add Products** | ✅ Complete |
+| 5 | **View Products** | ✅ Complete |
+| 6 | **Update Product Information** | ✅ Complete |
+| 7 | **Delete Products** | ✅ Complete |
+| 8 | **Manage Stock Quantities** | ✅ Complete |
+| 9 | **Search Products** | ✅ Complete |
+| 10 | **Filter by Category** | ✅ Complete |
+| 11 | **Low-Stock Alerts** | ✅ Complete |
+| 12 | **Dashboard Statistics** | ✅ Complete |
+| 13 | **Responsive Admin UI** | ✅ Complete |
 
 ---
 
-## 🗺️ Development Roadmap
+## 🛠️ Technology Stack
 
-> All phases below are **planned implementations**. Completed phases will be marked with ✅.
+### Application Layer (Implemented)
 
+| Layer | Technology | Status | Purpose |
+|-------|-----------|:------:|---------|
+| **Frontend** | React.js 18 + Vite 5 + Tailwind CSS 3 | ✅ Complete | Modern, responsive admin single-page application |
+| **Backend** | Node.js + Express.js 4 | ✅ Complete | RESTful API server with centralized routing |
+| **Database** | MongoDB + Mongoose 8 | ✅ Complete | NoSQL document storage with schema validation |
+
+### DevOps Layer (Roadmap)
+
+| Tool | Technology | Status | Purpose |
+|------|-----------|:------:|---------|
+| **Version Control** | Git + GitHub | ✅ Complete (Phase 1) | Source code management and collaboration |
+| **Containerization** | Docker | ⏳ Planned (Phase 3) | Multi-stage image build and container packaging |
+| **CI/CD** | GitHub Actions | ⏳ Planned (Phase 4) | Automated build, test, and container scanning |
+| **Orchestration** | Kubernetes | ⏳ Planned (Phase 5) | Cluster deployment, scaling, and self-healing |
+| **Automation** | Ansible | ⏳ Planned (Phase 6) | Automated server configuration management |
+| **Monitoring** | Prometheus | ⏳ Planned (Phase 7) | Real-time metric collection and monitoring |
+| **Security Scanning** | Trivy | ⏳ Planned (Phase 7) | Container image vulnerability analysis |
+
+---
+
+## 🏁 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- MongoDB running locally on port 27017 (or MongoDB Atlas URI)
+- Git
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Yashmalik2004/StockEase.git
+cd StockEase
 ```
-Phase 1  ──►  Phase 2  ──►  Phase 3  ──►  Phase 4
-   │              │              │              │
-Project        Full-Stack     Docker &      GitHub Actions
- Setup          App Dev       Compose        CI/CD Pipeline
-                                │
-                                ▼
-Phase 5  ◄──  Phase 6  ◄──  Phase 7  ◄──  Phase 8
-   │              │              │              │
-Kubernetes     Ansible        Monitoring &   Testing &
-Deployment    Automation      Security       Final Demo
+
+### 2. Configure and Start Backend
+
+```bash
+cd backend
+cp .env.example .env
+# Edit .env with your configuration
+npm install
+npm run dev
 ```
 
-### Phase Details
+Backend API server starts on **http://localhost:5000**
 
-| Phase | Title | Status |
-|-------|-------|--------|
-| **Phase 1** | Project Initialization and GitHub Setup | ✅ In Progress |
-| **Phase 2** | Frontend, Backend and MongoDB Development | ⏳ Planned |
-| **Phase 3** | Docker and Docker Compose | ⏳ Planned |
-| **Phase 4** | GitHub Actions CI/CD Pipeline | ⏳ Planned |
-| **Phase 5** | Kubernetes Deployment | ⏳ Planned |
-| **Phase 6** | Ansible Automation | ⏳ Planned |
-| **Phase 7** | Monitoring and Security | ⏳ Planned |
-| **Phase 8** | Testing, Documentation and Final Demonstration | ⏳ Planned |
+### 3. Configure and Start Frontend
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Frontend UI starts on **http://localhost:5173**
+
+### 4. (Optional) Populate Sample Inventory
+
+```bash
+cd backend
+npm run seed
+```
 
 ---
 
@@ -132,26 +148,45 @@ Deployment    Automation      Security       Final Demo
 StockEase/
 │
 ├── frontend/           # React.js + Vite frontend application
+│   └── src/
+│       ├── api/        # Axios API client
+│       ├── components/ # Reusable UI components
+│       ├── context/    # React Context (Auth)
+│       └── pages/      # Login, Register, Dashboard, Products, Add/Edit
+│
 ├── backend/            # Node.js + Express.js API server
-├── database/           # MongoDB schema, seeds, and config
-├── docker/             # Dockerfiles and Docker Compose configuration
-├── kubernetes/         # Kubernetes manifests and deployment configs
-├── ansible/            # Ansible playbooks and roles
-├── monitoring/         # Prometheus and monitoring configuration
-├── .github/
-│   └── workflows/      # GitHub Actions CI/CD workflow files
-├── docs/               # Project documentation and reports
-├── .gitignore          # Git ignore rules
-└── README.md           # This file
+│   ├── config/         # MongoDB connection
+│   ├── controllers/    # Route handler logic
+│   ├── middleware/     # JWT auth middleware
+│   ├── models/         # Mongoose models (Admin, Product)
+│   └── routes/         # Express routers
+│
+├── database/           # MongoDB schema docs + seed script
+├── docker/             # Docker configuration (Phase 3)
+├── kubernetes/         # Kubernetes manifests (Phase 5)
+├── ansible/            # Ansible playbooks (Phase 6)
+├── monitoring/         # Prometheus configuration (Phase 7)
+├── .github/workflows/  # GitHub Actions CI/CD (Phase 4)
+├── docs/               # Phase completion reports
+├── .env.example        # Root environment variable template
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🗺️ Development Roadmap
 
-> **Note:** Setup instructions will be added progressively as each phase is implemented.
-
-Prerequisites and setup guides will be documented in Phase 2 onwards.
+| Phase | Title | Status |
+|-------|-------|:------:|
+| **Phase 1** | Project Initialization and GitHub Setup | ✅ Complete |
+| **Phase 2** | Frontend, Backend and MongoDB Development | ✅ Complete |
+| **Phase 3** | Docker and Docker Compose | ⏳ Planned |
+| **Phase 4** | GitHub Actions CI/CD Pipeline | ⏳ Planned |
+| **Phase 5** | Kubernetes Deployment | ⏳ Planned |
+| **Phase 6** | Ansible Automation | ⏳ Planned |
+| **Phase 7** | Monitoring and Security | ⏳ Planned |
+| **Phase 8** | Testing, Documentation and Final Demonstration | ⏳ Planned |
 
 ---
 
@@ -163,5 +198,5 @@ This project is developed for academic purposes as part of a university DevOps C
 
 ## 👨‍💻 Author
 
-**Yash Malik**
+**Yash Malik**  
 GitHub: [@Yashmalik2004](https://github.com/Yashmalik2004)
