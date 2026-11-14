@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stockease
+  labels:
+    name: stockease
+    app.kubernetes.io/name: stockease
+    app.kubernetes.io/part-of: stockease
