@@ -1,3 +1,7 @@
+const dns = require('dns');
+// Use public DNS to reliably resolve MongoDB Atlas SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const mongoose = require('mongoose');
 
 const connectDB = async () => {

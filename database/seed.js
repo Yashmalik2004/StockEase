@@ -1,4 +1,13 @@
-require('dotenv').config({ path: '../backend/.env' });
+const path = require('path');
+const dns = require('dns');
+
+// Use public DNS to reliably resolve MongoDB Atlas SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+// Add backend node_modules so dependencies can be loaded from anywhere
+module.paths.push(path.join(__dirname, '../backend/node_modules'));
+
+require('dotenv').config({ path: path.join(__dirname, '../backend/.env') });
 const mongoose = require('mongoose');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/stockease';
