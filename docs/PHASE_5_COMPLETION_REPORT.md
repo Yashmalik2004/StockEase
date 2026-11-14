@@ -318,7 +318,7 @@ To deploy StockEase on a live Minikube cluster:
 
 - **Feature Branch:** `kubernetes-orchestration`
 - **Base Branch:** `origin/main` (synced at `66ff080 Merge pull request #4 from Yashmalik2004/github-actions-cicd`)
-- **Git Commit Hash:** `27e5176` (`feat: implement Kubernetes orchestration (Phase 5)`)
+- **Git Commit Hash:** `a7d1852` (`feat: implement Kubernetes orchestration (Phase 5)`)
 - **Remote Push:** Branch pushed to `origin/kubernetes-orchestration`
 - **Main Branch Protection:** Main branch untouched; zero commits pushed directly to `main`.
 
