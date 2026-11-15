@@ -1,0 +1,6 @@
+# StockEase Trivy Ignore File
+# This file lists vulnerability IDs that are accepted/suppressed with justification.
+# Format: CVE-YYYY-NNNNN  # Reason
+
+# Example (remove and add real ones after first scan):
+# CVE-2023-XXXXX  # Accepted: no fix available, mitigated by network policy
