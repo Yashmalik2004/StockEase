@@ -14,7 +14,9 @@
 #       docker build -t stockease-frontend:latest ./frontend
 #       minikube image load stockease-backend:latest
 #       minikube image load stockease-frontend:latest
-#   - JWT_SECRET environment variable set (never hardcode in playbooks)
+#   - JWT_SECRET resolved securely from ~/.stockease/jwt_secret (auto-created
+#     if missing), JWT_SECRET environment variable, or -e jwt_secret_var=...
+#     (never hardcode in playbooks or commit to git)
 #
 # Usage:
 #   ansible-playbook playbooks/deploy.yml
@@ -26,9 +28,15 @@
   hosts: k8s_control
   gather_facts: false
 
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/all.yml"
+
   vars:
-    # JWT_SECRET read from variable (if passed via -e jwt_secret=...) or environment variable
-    jwt_secret: "{{ jwt_secret_var | default(lookup('env', 'JWT_SECRET'), true) }}"
+    # Secure JWT_SECRET resolution order:
+    # 1. Variable override: -e jwt_secret_var=...
+    # 2. Environment variable: JWT_SECRET
+    # 3. Secure persistent file outside git repo: ~/.stockease/jwt_secret (reused across runs)
+    jwt_secret: "{{ jwt_secret_var | default(lookup('env', 'JWT_SECRET'), true) | default(lookup('password', jwt_secret_file ~ ' length=64 chars=ascii_letters,digits'), true) }}"
 
   pre_tasks:
     # --------------------------------------------------------------------------
@@ -102,13 +110,17 @@
         msg: "All 10 Kubernetes manifest files verified."
       tags: [preflight, always]
 
-    - name: "PREFLIGHT | Validate JWT_SECRET is set in environment"
+    - name: "PREFLIGHT | Verify JWT_SECRET is available"
       ansible.builtin.fail:
         msg: >
-          JWT_SECRET environment variable is not set.
-          Set it before running: export JWT_SECRET=your_secure_secret_key
-          (minimum 32 characters for production).
-      when: jwt_secret | length == 0
+          JWT_SECRET could not be resolved from extra_vars, environment variable,
+          or persistent secret store ({{ jwt_secret_file }}).
+      when: (jwt_secret | default('', true) | length) == 0
+      tags: [preflight, always]
+
+    - name: "PREFLIGHT | Confirm JWT_SECRET is loaded securely"
+      ansible.builtin.debug:
+        msg: "JWT_SECRET loaded securely (length: {{ jwt_secret | length }} chars) from secure persistent source."
       tags: [preflight, always]
 
   tasks:
@@ -147,13 +159,25 @@
 
     # --------------------------------------------------------------------------
     # Step 4: Secret (created/updated idempotently without committing credentials)
+    # Note: Using `data` with b64encode instead of `stringData` ensures kubectl apply
+    # recognizes the live secret schema, outputting 'unchanged' on subsequent runs (idempotency).
     # --------------------------------------------------------------------------
     - name: "SECRET | Apply stockease-secret from JWT_SECRET"
-      ansible.builtin.shell: >
-        {{ kubectl_bin }} create secret generic stockease-secret
-        --from-literal=JWT_SECRET={{ jwt_secret }}
-        -n {{ k8s_namespace }}
-        --dry-run=client -o yaml | {{ kubectl_bin }} apply -f -
+      ansible.builtin.command: "{{ kubectl_bin }} apply -f -"
+      args:
+        stdin: |
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: stockease-secret
+            namespace: {{ k8s_namespace }}
+            labels:
+              app.kubernetes.io/name: stockease-secret
+              app.kubernetes.io/part-of: stockease
+          type: Opaque
+          data:
+            JWT_SECRET: "{{ jwt_secret | b64encode }}"
+      no_log: true
       register: secret_apply_result
       changed_when: "'created' in secret_apply_result.stdout or 'configured' in secret_apply_result.stdout"
       tags: [secret, deploy]

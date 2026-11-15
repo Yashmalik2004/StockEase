@@ -193,21 +193,24 @@ use_minikube=true
 
 > ⚠️ **Never commit real secrets to Git.**
 
-The JWT secret is passed to Ansible via an **environment variable** — not hardcoded in any playbook or vars file.
+The JWT secret is managed securely outside the Git repository with the following precedence:
 
-#### Before running the playbook, set the environment variable:
+1. **Extra-vars**: Passed dynamically via `-e jwt_secret_var=...`
+2. **Environment variable**: Exported via `JWT_SECRET`
+3. **Persistent Secret File (Recommended & Default)**: Stored securely in `~/.stockease/jwt_secret` (permissions `0600`).
+   - If this file does not exist, Ansible automatically generates a cryptographically secure 64-character secret and persists it to `~/.stockease/jwt_secret`.
+   - On all subsequent runs, the playbook reuses this secret, guaranteeing **100% idempotency (`changed=0`)** while ensuring secrets are never hardcoded in playbooks or committed to version control.
+
+#### Manual Initialization (Optional):
 
 ```bash
 # In WSL2 or Linux shell:
-export JWT_SECRET=your_secure_random_jwt_secret_key_minimum_32_chars
-
-# Verify it is set:
-echo $JWT_SECRET
+mkdir -p ~/.stockease && chmod 700 ~/.stockease
+openssl rand -hex 32 > ~/.stockease/jwt_secret
+chmod 600 ~/.stockease/jwt_secret
 ```
 
-The playbook will fail with a clear error message if `JWT_SECRET` is not set.
-
-The secret is applied to Kubernetes using `kubectl create secret generic` imperatively — no Base64-encoded secret YAML is committed.
+The secret is applied to Kubernetes idempotently using `kubectl apply -f -` via standard input with `no_log: true` — secrets are never logged to console or disk.
 
 #### Reference Template
 

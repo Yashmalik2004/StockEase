@@ -16,6 +16,9 @@
   hosts: k8s_control
   gather_facts: false
 
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/all.yml"
+
   tasks:
     # --------------------------------------------------------------------------
     # Cluster Connectivity
@@ -47,6 +50,70 @@
       ansible.builtin.debug:
         msg: "Namespace '{{ k8s_namespace }}' is Active."
       tags: [namespace]
+
+    # --------------------------------------------------------------------------
+    # Persistent Volume Claim
+    # --------------------------------------------------------------------------
+    - name: "CHECK | MongoDB PVC exists and is Bound"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get pvc mongodb-pvc -n {{ k8s_namespace }} -o jsonpath='{.status.phase}'
+      register: pvc_phase
+      changed_when: false
+      failed_when: pvc_phase.rc != 0 or pvc_phase.stdout != "Bound"
+      tags: [pvc, storage]
+
+    - name: "CHECK | MongoDB PVC – Bound"
+      ansible.builtin.debug:
+        msg: "MongoDB PVC 'mongodb-pvc' is Bound."
+      tags: [pvc, storage]
+
+    # --------------------------------------------------------------------------
+    # Deployments Availability
+    # --------------------------------------------------------------------------
+    - name: "CHECK | MongoDB Deployment is available"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} rollout status deployment/mongodb -n {{ k8s_namespace }} --timeout=30s
+      register: mongodb_deploy_status
+      changed_when: false
+      failed_when: mongodb_deploy_status.rc != 0
+      tags: [deployments, mongodb]
+
+    - name: "CHECK | Backend Deployment is available"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} rollout status deployment/backend -n {{ k8s_namespace }} --timeout=30s
+      register: backend_deploy_status
+      changed_when: false
+      failed_when: backend_deploy_status.rc != 0
+      tags: [deployments, backend]
+
+    - name: "CHECK | Frontend Deployment is available"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} rollout status deployment/frontend -n {{ k8s_namespace }} --timeout=30s
+      register: frontend_deploy_status
+      changed_when: false
+      failed_when: frontend_deploy_status.rc != 0
+      tags: [deployments, frontend]
+
+    # --------------------------------------------------------------------------
+    # Services
+    # --------------------------------------------------------------------------
+    - name: "CHECK | Required Services exist (mongodb, backend, frontend)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} get service {{ item }} -n {{ k8s_namespace }} --no-headers
+      register: svc_check
+      loop:
+        - mongodb
+        - backend
+        - frontend
+      changed_when: false
+      failed_when: svc_check.rc != 0
+      tags: [services]
+
+    - name: "CHECK | Services confirmed"
+      ansible.builtin.debug:
+        msg: "Service '{{ item.item }}' exists in namespace '{{ k8s_namespace }}'."
+      loop: "{{ svc_check.results }}"
+      tags: [services]
 
     # --------------------------------------------------------------------------
     # MongoDB
@@ -128,6 +195,25 @@
       tags: [health, backend]
 
     # --------------------------------------------------------------------------
+    # Frontend HTTP Delivery
+    # --------------------------------------------------------------------------
+    - name: "CHECK | Frontend HTTP delivery (status 200)"
+      ansible.builtin.command: >
+        {{ kubectl_bin }} exec
+        -n {{ k8s_namespace }}
+        deployment/frontend
+        -- wget -qO- http://127.0.0.1:80/
+      register: frontend_http_check
+      changed_when: false
+      failed_when: frontend_http_check.rc != 0 or 'StockEase' not in frontend_http_check.stdout
+      tags: [health, frontend]
+
+    - name: "CHECK | Frontend HTTP response"
+      ansible.builtin.debug:
+        msg: "Frontend HTML bundle served successfully (StockEase SPA confirmed)."
+      tags: [health, frontend]
+
+    # --------------------------------------------------------------------------
     # Summary
     # --------------------------------------------------------------------------
     - name: "SUMMARY | All validation checks passed"
@@ -138,10 +224,12 @@
           ============================================================
            Cluster connectivity  : OK
            Namespace stockease   : Active
-           MongoDB pod           : Ready
-           Backend pod           : Ready
-           Frontend pod          : Ready
+           MongoDB PVC           : Bound
+           Deployments           : mongodb, backend, frontend Available
+           Services              : mongodb, backend, frontend Active
+           Pods                  : mongodb, backend, frontend Ready
            Backend /api/health   : OK
+           Frontend HTTP delivery: OK (StockEase SPA)
           ------------------------------------------------------------
            Frontend URL:
              minikube service frontend -n stockease --url

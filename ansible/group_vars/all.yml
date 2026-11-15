@@ -10,8 +10,8 @@
 # Target namespace for all StockEase Kubernetes resources
 k8s_namespace: stockease
 
-# Path to Kubernetes manifests directory (relative to the ansible/ directory)
-manifests_dir: "{{ playbook_dir }}/../kubernetes"
+# Path to Kubernetes manifests directory (relative to playbooks/ directory)
+manifests_dir: "{{ playbook_dir }}/../../kubernetes"
 
 # kubectl binary (can be overridden if kubectl is not on PATH)
 kubectl_bin: kubectl
@@ -46,11 +46,14 @@ backend_image: stockease-backend:latest
 frontend_image: stockease-frontend:latest
 
 # ------------------------------------------------------------------------------
-# Application Configuration (non-sensitive)
-# Sensitive values (JWT_SECRET) must be passed via environment variable
-# or vault — never hardcoded here.
-# See kubernetes/secret.yaml.example for the Secret template.
+# Security & Secret Management
+# Sensitive values (JWT_SECRET) are never committed to the repository.
+# They are resolved from:
+#   1. jwt_secret_var (-e jwt_secret_var=...)
+#   2. Environment variable JWT_SECRET
+#   3. Secure persistent file outside the repo (~/.stockease/jwt_secret)
 # ------------------------------------------------------------------------------
+jwt_secret_file: "{{ lookup('env', 'HOME') }}/.stockease/jwt_secret"
 
 app_port: "5000"
 mongo_uri: "mongodb://mongodb:27017/stockease"

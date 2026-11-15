@@ -13,12 +13,18 @@
 # ==============================================================================
 
 ---
-collections:
-  # Core Ansible modules (built-in, always available — listed for completeness)
-  - name: ansible.builtin
+# ==============================================================================
+# StockEase Ansible Requirements
+# Phase 6: Ansible Automation
+# ==============================================================================
+# This file lists external Ansible collections required by the playbooks.
+#
+# Note: StockEase playbooks rely on standard built-in modules (ansible.builtin)
+# and command wrappers around kubectl, which are included in every Ansible
+# installation. No external collections are strictly required.
+#
+# To install optional Kubernetes collection:
+#   ansible-galaxy collection install kubernetes.core
+# ==============================================================================
 
-  # Kubernetes collection — optional; enables native k8s: module tasks
-  # Uncomment if you prefer native k8s module over kubectl command wrappers
-  # Requires: pip install kubernetes openshift
-  # - name: kubernetes.core
-  #   version: ">=3.0.0"
+collections: []
