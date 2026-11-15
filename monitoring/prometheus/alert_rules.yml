@@ -1,0 +1,44 @@
+groups:
+  - name: stockease_alerts
+    interval: 30s
+    rules:
+      - alert: BackendDown
+        expr: up{job="stockease-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "StockEase backend is down"
+          description: "The StockEase backend has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          rate(stockease_http_requests_total{status_code=~"5.."}[5m]) /
+          rate(stockease_http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate"
+          description: "More than 5% of requests are returning 5xx errors."
+
+      - alert: HighRequestLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(stockease_http_request_duration_seconds_bucket[5m])
+          ) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile latency is above 1 second."
+
+      - alert: HighActiveRequests
+        expr: stockease_active_requests > 100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active requests"
+          description: "More than 100 concurrent active requests."

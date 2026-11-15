@@ -60,12 +60,36 @@ services:
     networks:
       - stockease-network
 
+  # ============================================================================
+  # Prometheus Monitoring Service
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: stockease-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/rules/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    networks:
+      - stockease-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
 # ==============================================================================
 # Persistent Storage Volumes
 # ==============================================================================
 volumes:
   mongodb_data:
     name: stockease-mongodb-data
+  prometheus_data:
 
 # ==============================================================================
 # Isolated Bridge Network

@@ -315,3 +315,95 @@ This project is developed for academic purposes as part of a university DevOps C
 
 **Yash Malik**  
 GitHub: [@Yashmalik2004](https://github.com/Yashmalik2004)
+
+---
+
+## Phase 7: Monitoring and Security ? Complete
+
+### Overview
+Phase 7 adds Prometheus-based monitoring and Trivy-based security scanning to StockEase.
+
+### Prometheus Monitoring
+- **Backend metrics**: `GET /metrics` endpoint (prom-client `^15.1.3`) exposing custom HTTP counters, histograms, gauges, and default Node.js runtime metrics
+- **Prometheus server**: `prom/prometheus:v2.51.2`, scrapes backend every 10 seconds
+- **Kubernetes**: Deployed in `stockease` namespace, accessible at **NodePort 30090**
+- **Docker Compose**: Available at `http://localhost:9090`
+
+### Key Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `stockease_http_requests_total` | Counter | Total HTTP requests by method, route, status code |
+| `stockease_http_request_duration_seconds` | Histogram | Request duration with 9 latency buckets |
+| `stockease_active_requests` | Gauge | Instantaneous active request count |
+| `stockease_nodejs_heap_size_used_bytes` | Gauge | Node.js heap memory in use |
+| `stockease_nodejs_eventloop_lag_seconds` | Histogram | Event loop lag |
+| `stockease_process_cpu_seconds_total` | Counter | CPU time consumed |
+
+### Security Scanning (Trivy)
+- **GitHub Actions**: `.github/workflows/security-scan.yml` — 3 parallel jobs scan backend image, frontend image, and filesystem/config/secrets
+- **Local scripts**: `monitoring/security/trivy-scan.sh` (Linux/Mac) and `monitoring/security/trivy-scan.ps1` (Windows)
+- **Triggers**: Push to `main`/`monitoring-security`, PRs to `main`, weekly schedule (Monday 02:00 UTC), manual dispatch
+- **SARIF reports**: Uploaded to GitHub Security tab for each scan
+
+### Quick Start
+
+#### Access Prometheus (Docker Compose)
+```bash
+docker compose up -d
+# Open http://localhost:9090
+# Test metrics directly:
+curl http://localhost:5001/metrics
+```
+
+#### Access Prometheus (Kubernetes)
+```bash
+kubectl apply -f monitoring/kubernetes/
+kubectl rollout status deployment/prometheus -n stockease
+minikube service prometheus -n stockease
+# Or: kubectl port-forward svc/prometheus 9090:9090 -n stockease
+```
+
+#### Run Security Scan Locally
+```bash
+# Linux/Mac (requires trivy + docker)
+./monitoring/security/trivy-scan.sh all
+
+# Windows (requires trivy + docker)
+.\monitoring\security\trivy-scan.ps1 -ScanType all
+```
+
+### Useful PromQL Queries
+```promql
+rate(stockease_http_requests_total[5m])
+histogram_quantile(0.95, rate(stockease_http_request_duration_seconds_bucket[5m]))
+stockease_active_requests
+up{job="stockease-backend"}
+stockease_nodejs_heap_size_used_bytes / 1024 / 1024
+```
+
+### New Files Added in Phase 7
+```
+monitoring/
++-- prometheus/
+¦   +-- prometheus.yml          # Prometheus scrape configuration
+¦   +-- alert_rules.yml         # 4 alert rules (BackendDown, HighErrorRate, etc.)
++-- kubernetes/
+¦   +-- prometheus-configmap.yaml
+¦   +-- prometheus-deployment.yaml
+¦   +-- prometheus-service.yaml
++-- security/
+¦   +-- trivy-scan.sh           # Bash local scan script
+¦   +-- trivy-scan.ps1          # PowerShell local scan script
+¦   +-- .trivyignore            # CVE accept/suppress list
++-- README.md
+.github/workflows/security-scan.yml  # Trivy CI workflow
+docs/PHASE_7_COMPLETION_REPORT.md    # Full phase report
+backend/server.js                    # +/metrics endpoint
+backend/package.json                 # +prom-client dependency
+docker-compose.yml                   # +prometheus service
+```
+
+### Documentation
+- Monitoring details: [`monitoring/README.md`](monitoring/README.md)
+- Phase 7 completion report: [`docs/PHASE_7_COMPLETION_REPORT.md`](docs/PHASE_7_COMPLETION_REPORT.md)

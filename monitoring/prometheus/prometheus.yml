@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: 'stockease'
+    environment: 'development'
+
+rule_files:
+  - '/etc/prometheus/rules/alert_rules.yml'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Docker Compose: target is 'stockease-backend:5000'
+  # Kubernetes:     target is 'backend:5000' (ClusterIP in stockease namespace)
+  - job_name: 'stockease-backend'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['backend:5000']
+        labels:
+          service: 'stockease-backend'
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
